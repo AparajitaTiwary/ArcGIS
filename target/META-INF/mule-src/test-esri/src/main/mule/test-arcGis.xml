@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="709346d8-a34a-43ef-820f-02a375fc64de" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="test-esriFlow" doc:id="69841503-f660-42c8-992f-0af594f64f74" >
+		<http:listener doc:name="Listener" doc:id="84a041d9-3531-46e5-9876-6cd0ce0c001f" path="/esri" config-ref="HTTP_Listener_config"/>
+		<ee:transform doc:name="Transform Message" doc:id="340e4801-5adb-4225-b161-71d53864357f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output multipart/form-data
+---
+{
+    parts: {
+        f: {
+            headers : {
+                            "Content-Type": "test/plain"
+                        },
+                        content: "json"
+        },
+        username: {
+            headers : {
+                             "Content-Type": "test/plain"
+                         },
+                        content: "yourUsername"
+        },
+        password: {
+            headers : {
+                             "Content-Type": "test/plain"
+                        },
+                        content: "yourPassword"
+        },
+        client: {
+            headers : {
+                             "Content-Type": "test/plain"
+                        },
+                        content: "referer"
+        },
+         referer: {
+            headers : {
+                             "Content-Type": "test/plain"
+                        },
+                        content: "arcgis.com"
+        },
+          expiration: {
+            headers : {
+                             "Content-Type": "application/json"
+                        },
+                        content: 21600
+        }
+
+                          
+    }
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<http:request method="POST" doc:name="Request" doc:id="f0e35e51-d96c-4d2e-90c4-23b8d8699f64" url="https://www.arcgis.com/sharing/rest/generateToken" >
+		</http:request>
+		<set-variable value="#[payload.token]" doc:name="token" doc:id="6f245411-6dd2-4367-a5c8-0300b697bc76" variableName="token"/>
+		<http:request method="GET" doc:name="Request service area" doc:id="556ce18c-bcdf-41c2-85ed-693e1fcf0e0b" url="https://route.arcgis.com/arcgis/rest/services/World/ServiceAreas/NAServer/ServiceArea_World/solveServiceArea">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"facilities" : "-122.253,37.757",
+	"f" : "json",
+	"token" : vars.token
+}]]]></http:query-params>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="7529582f-aff6-466c-80fe-3f55de1f30fc" message="#[payload]"/>
+	</flow>
+</mule>
